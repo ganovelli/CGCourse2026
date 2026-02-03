@@ -1,0 +1,1 @@
+add_executable(code_00_raytracer main.cpp)
