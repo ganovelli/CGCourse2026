@@ -4,6 +4,7 @@
 #include <fstream>
 #include <math.h>
 
+#include <random>
 using namespace std;
  
 #define FAR_AWAY 10e20
@@ -27,6 +28,13 @@ struct image {
 		data[(j * w + i) * 3] = (unsigned char)r;
 		data[(j * w + i) * 3 + 1] = (unsigned char)g;
 		data[(j * w + i) * 3 + 2] = (unsigned char)b;
+	}
+	template <class S>
+	void additive_pixel(int i, int j, S  r, S  g, S  b) {
+		j = h - 1 - j; // flip vertically for image coordinate system
+		data[(j * w + i) * 3] = 0.5 * data[(j * w + i) * 3] + (unsigned char)r;
+		data[(j * w + i) * 3 + 1] = 0.5 * (data[(j * w + i) * 3 + 1] + (unsigned char)g);
+		data[(j * w + i) * 3 + 2] = 0.5 *(data[(j * w + i) * 3 + 2] + (unsigned char)b);
 	}
 
 	// Save image as ASCII PPM (P3) file
@@ -113,7 +121,10 @@ hit_info  hit_sphere(ray r, sphere s) {
 	hi.hit = true;
 	return hi;
 }
-
+float randomFloat()
+{
+	return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+}
 int main(int args, char** argv) {
 	int sx = 800;
 	int sy = 800;
@@ -130,39 +141,43 @@ int main(int args, char** argv) {
 
 	// iterate over image pixels (simple pinhole camera)
 	for (int i = 0; i < a.w; ++i)
-		for (int j = 0; j < a.h; ++j) {
-			// compute pixel position on image plane in [-1,1] range
-			p3 pixpos(-1 + 2 * (i+0.5) / float(a.w), -1 + 2 * (j+0.5) / float(a.h), -1);
-			ray r = ray(eye, pixpos - eye); // primary ray
+		for (int j = 0; j < a.h; ++j) 
+			for (int raysPerPixel = 0; raysPerPixel < 4; raysPerPixel++)
+			{
 
-			hit_info best_hi = hit_info(); // best intersection so far
-			p3 col = p3(0, 0, 0); // background color (black)
-			for (int is = 0; is < scene.size(); ++is) {
-				hit_info hi = hit_sphere(r, scene[is]); // test intersection
-				if (hi.t < best_hi.t) { // closer hit found
-					best_hi = hi;
-					p3 p = r.orig + r.dir * hi.t; // hit point
-					p3 L = Lp - p; // vector to light
-					L = L * (1.0 / sqrt(L * L)); // normalize L
+				// compute pixel position on image plane in [-1,1] range
+				p3 pixpos(-1 + 2 * (i+0.5 + randomFloat()*0.5f) / float(a.w), -1 + 2 * (j+0.5+randomFloat()*0.5f) / float(a.h), -1);
+				ray r = ray(eye, pixpos - eye); // primary ray
 
-					// offset origin slightly to avoid self-intersection (shadow acne)
-					ray shadow_ray = ray(p + L*0.001, L);
+				hit_info best_hi = hit_info(); // best intersection so far
+				p3 col = p3(0, 0, 0); // background color (black)
+				for (int is = 0; is < scene.size(); ++is) {
+					hit_info hi = hit_sphere(r, scene[is]); // test intersection
+					if (hi.t < best_hi.t) { // closer hit found
+						best_hi = hi;
+						p3 p = r.orig + r.dir * hi.t; // hit point
+						p3 L = Lp - p; // vector to light
+						L = L * (1.0 / sqrt(L * L)); // normalize L
 
-					// check for occlusion: if any object blocks the light, point is in shadow
-					int iss = 0;
-					for (; iss < scene.size(); ++iss)
-						if (hit_sphere(shadow_ray, scene[iss]).hit)
-							break;
+						// offset origin slightly to avoid self-intersection (shadow acne)
+						ray shadow_ray = ray(p + L*0.001, L);
+
+						// check for occlusion: if any object blocks the light, point is in shadow
+						int iss = 0;
+						for (; iss < scene.size(); ++iss)
+							if (hit_sphere(shadow_ray, scene[iss]).hit)
+								break;
 					
-					if (iss == scene.size()) { // light visible -> simple Lambertian shading
-						float cosLN = hi.n * L;
-						float al = max(0.f, cosLN); // clamp negative values
-						col = hi.color * al; // scale object color by diffuse term
+						if (iss == scene.size()) { // light visible -> simple Lambertian shading
+							float cosLN = hi.n * L;
+							float al = max(0.f, cosLN); // clamp negative values
+							col = hi.color * al; // scale object color by diffuse term
+						}
 					}
 				}
+				a.additive_pixel(i, j, col.x, col.y, col.z); // write pixel
 			}
-			a.set_pixel(i, j, col.x, col.y, col.z); // write pixel
-		}
+		
 
 	a.save("rendering.ppm"); // save to disk
 	return 0;

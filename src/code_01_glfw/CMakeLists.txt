@@ -1,0 +1,1 @@
+add_executable(code_01_glfw customName.cpp)
