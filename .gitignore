@@ -23,6 +23,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 build/
+external/glfw/docs/
 
 # .NET Core
 project.lock.json
