@@ -99,6 +99,7 @@ hit_info  hit_sphere(ray r, sphere s) {
 	// choose smaller root first (closest intersection)
 	float t = (-B - sqrt(delta)) / (2 * A);
 	if( t <= 0 )
+ 	if (t <= 0)
 		t = (-B + sqrt(delta)) / (2 * A);
 	// if still non-positive, intersection is behind ray origin
 	if (t <= 0)
@@ -124,7 +125,7 @@ int main(int args, char** argv) {
 	// scene setup: two spheres with colors
 	std::vector< sphere > scene;
 	scene.push_back(sphere(p3(0, 0, -3),   1.0, p3(255,0,0) ) );
-	scene.push_back(sphere(p3(0.6, 0.6, -2.0), 0.2, p3(0, 0, 255)));
+  	scene.push_back(sphere(p3(0.7, 0.7, -2), 0.2, p3(0, 0, 255)));
 
 	p3 Lp = p3(1, 1, -1); // point light position
 
@@ -145,6 +146,10 @@ int main(int args, char** argv) {
 					p3 L = Lp - p; // vector to light
 					L = L * (1.0 / sqrt(L * L)); // normalize L
 
+					float cosLN = hi.n * L;
+					float al = max(0.f, cosLN); // clamp negative values
+					col = hi.color * al; // scale object color by diffuse term
+
 					// offset origin slightly to avoid self-intersection (shadow acne)
 					ray shadow_ray = ray(p + L*0.001, L);
 
@@ -153,12 +158,11 @@ int main(int args, char** argv) {
 					for (; iss < scene.size(); ++iss)
 						if (hit_sphere(shadow_ray, scene[iss]).hit)
 							break;
-					
-					if (iss == scene.size()) { // light visible -> simple Lambertian shading
-						float cosLN = hi.n * L;
-						float al = max(0.f, cosLN); // clamp negative values
-						col = hi.color * al; // scale object color by diffuse term
-					}
+					 
+					if (iss != scene.size())  // In shadow --> make
+						col = p3(0,0,0);
+
+ 					
 				}
 			}
 			a.set_pixel(i, j, col.x, col.y, col.z); // write pixel
