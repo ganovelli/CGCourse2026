@@ -3,7 +3,59 @@
 #include <iostream>
 #include "../common/debugging.h"
 
+std::vector<GLuint> create_grid_indices(int xsize, int ysize){
+    std::vector<GLuint> indices;
+    int cols = xsize + 1;
+    
+    for(int i = 0; i < ysize; ++i){
+        for(int j = 0; j < xsize; ++j){
+            int topLeft = i * cols + j;
+            int topRight = i * cols + j + 1;
+            int bottomLeft = (i + 1) * cols + j;
+            int bottomRight = (i + 1) * cols + j + 1;
+            
+            // First triangle
+            indices.push_back(topLeft);
+            indices.push_back(bottomLeft);
+            indices.push_back(topRight);
+            
+            // Second triangle
+            indices.push_back(topRight);
+            indices.push_back(bottomLeft);
+            indices.push_back(bottomRight);
+        }
+    }
+    return indices;
+}
 
+
+GLuint create_box2d(int xsize, int ysize){
+    int vertexes = (xsize + 1) * (ysize + 1);
+    std::vector<float> positions;
+    float xstep {2.f / xsize};
+    float ystep {2.f / ysize};
+
+    for(int i{0}; i < ysize + 1; ++i){
+        for(int j{0}; j < xsize + 1; ++j){
+            int idx = i * (xsize + 1) + j;
+
+            positions.push_back(-1.f + (j * xstep));
+            positions.push_back(-1.f + (i * ystep));
+
+            positions.push_back(1.0f);
+            positions.push_back(1.0f);
+            positions.push_back(1.0f);
+        }
+    }
+
+    
+    GLuint idmat {}; // Reference to points buffer
+    glGenBuffers(1, &idmat); 
+    glBindBuffer(GL_ARRAY_BUFFER, idmat);
+
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(float), positions.data(), GL_STATIC_DRAW);
+    return idmat;
+}
 
 int main(int argc, char** argv) {
 
@@ -84,11 +136,27 @@ int main(int argc, char** argv) {
     ///* specify the data format */
     glVertexAttribPointer(colorAttribIndex, 3, GL_FLOAT, false, 5 * sizeof(float), (void*)(2 * sizeof(float)));
 
-    GLuint indices[] = { 0,1,2,0,2,3 };
+
+    GLuint matrix = 2;
+    GLuint matrixColor = 3;
+
+    GLuint matid {create_box2d(2,3)};
+    glBindBuffer(GL_ARRAY_BUFFER, matid);
+
+    std::vector<GLuint> indices {create_grid_indices(2,3)};
+
+    glEnableVertexAttribArray(matrix);
+    glVertexAttribPointer(matrix, 2, GL_FLOAT, false, 5 * sizeof(float), 0);
+
+    glEnableVertexAttribArray(matrixColor);
+    glVertexAttribPointer(matrixColor, 3, GL_FLOAT, false, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    
     GLuint indexBuffer;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
+    
 
 
     ///* create a vertex shader */
@@ -131,8 +199,11 @@ int main(int argc, char** argv) {
      
     glBindAttribLocation(program_shader, positionAttribIndex, "aPosition");
     glBindAttribLocation(program_shader, colorAttribIndex, "aColor");
-    glLinkProgram(program_shader);
    
+    glBindAttribLocation(program_shader, matrix, "aPosition");
+    glBindAttribLocation(program_shader, matrixColor, "aColor");
+
+    glLinkProgram(program_shader);
 
     GLint linked;
     validate_shader_program(program_shader);
@@ -155,9 +226,11 @@ int main(int argc, char** argv) {
     glClearColor(0.2, 0.2, 0.2, 1);
     while (!glfwWindowShouldClose(window))
     {
+        /*
         if (delta < 0 || delta > 0.5)
             d = -d;
         delta += d;
+        */
 
         glUniform1f(loc, delta);
 
@@ -166,8 +239,7 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
        
         // glDrawArrays(GL_TRIANGLES, 0, 6);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-
+        glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 

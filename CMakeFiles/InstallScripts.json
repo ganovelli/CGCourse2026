@@ -1,0 +1,13 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/deff/CGCourse2026/cmake_install.cmake",
+		"/home/deff/CGCourse2026/external/glfw/cmake_install.cmake",
+		"/home/deff/CGCourse2026/external/glfw/src/cmake_install.cmake",
+		"/home/deff/CGCourse2026/src/cmake_install.cmake",
+		"/home/deff/CGCourse2026/src/code_00_raytracer/cmake_install.cmake",
+		"/home/deff/CGCourse2026/src/code_01_setup_glfw/cmake_install.cmake",
+		"/home/deff/CGCourse2026/src/code_02_my_first_triangle/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

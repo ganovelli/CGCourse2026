@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/code_01_setup_glfw.dir/link.d CMakeFiles/code_01_setup_glfw.dir/main_01.cpp.o -o code_01_setup_glfw  ../../external/glfw/src/libglfw3.a ../../libglad.a /usr/lib/librt.a -lm -ldl /usr/lib/libGLX.so /usr/lib/libOpenGL.so
